@@ -5,12 +5,14 @@ mod ui;
 use crate::app::{App, AppMode};
 use anyhow::Result;
 use crossterm::{
+    cursor::SetCursorStyle,
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
+    style::SetBackgroundColor,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
-use std::io;
+use std::io::{self, Write};
 
 fn main() -> Result<()> {
     enable_raw_mode()?;
@@ -25,6 +27,17 @@ fn main() -> Result<()> {
         terminal.draw(|f| {
             f.render_widget(&app, f.size());
         })?;
+
+        match app.mode {
+            AppMode::Insert => {
+                execute!(io::stdout(), SetCursorStyle::BlinkingBar)?;
+            }
+            AppMode::Normal | AppMode::Command => {
+                execute!(io::stdout(), SetCursorStyle::BlinkingBlock)?;
+            }
+        }
+
+        io::stdout().flush()?;
 
         if let Event::Key(key) = event::read()? {
             match key.code {

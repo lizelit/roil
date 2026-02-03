@@ -16,7 +16,6 @@ impl Widget for &App {
         let body_area = main_chunks[0];
         let footer_area = main_chunks[1];
 
-        // Render file list
         let mut file_list = self.textarea.clone();
         file_list.set_block(
             Block::default()
@@ -26,7 +25,6 @@ impl Widget for &App {
         let file_list_widget = file_list.widget();
         file_list_widget.render(body_area, buf);
 
-        // Render command line or status bar
         match self.mode {
             AppMode::Command => {
                 let mut command_line = self.command_line.clone();
@@ -40,7 +38,6 @@ impl Widget for &App {
                     self.mode
                 );
 
-                // Add message if present
                 if let Some(ref msg) = self.message {
                     status_text = format!("{} | {}", status_text, msg);
                 }

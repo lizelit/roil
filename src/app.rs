@@ -1,7 +1,8 @@
 use crate::file_system::FileItem;
 use anyhow::{Context, Result};
+use crossterm::execute;
 use ratatui_textarea::{CursorMove, Input, Key, TextArea};
-use std::fs;
+use std::{fs, io};
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum AppMode {
@@ -78,6 +79,7 @@ impl App {
             },
             AppMode::Insert => match input {
                 Input { key: Key::Esc, .. } => self.mode = AppMode::Normal,
+
                 _ => {
                     self.textarea.input(input);
                 }
@@ -121,7 +123,6 @@ impl App {
             }
         }
 
-        // Clear command line after execution
         self.command_line = TextArea::new(vec![]);
     }
 }
