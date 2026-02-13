@@ -1,8 +1,9 @@
 use anyhow::{Context, Result};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use uuid::Uuid;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum FileKind {
     EmptyDirectory,
     Directory,
@@ -13,6 +14,14 @@ pub enum FileKind {
     Markdown,
     Toml,
     Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileItem {
+    pub name: String,
+    pub kind: FileKind,
+    pub id: Option<Uuid>,
+    pub path: PathBuf,
 }
 
 impl FileKind {
@@ -55,11 +64,6 @@ impl FileKind {
     }
 }
 
-pub struct FileItem {
-    pub name: String,
-    pub kind: FileKind,
-}
-
 impl FileItem {
     pub fn new(path: &Path) -> Result<Self> {
         let name = path
@@ -70,6 +74,27 @@ impl FileItem {
 
         let kind = FileKind::from_path(path);
 
-        Ok(Self { name, kind })
+        Ok(Self {
+            name,
+            kind,
+            id: Some(Uuid::new_v4()),
+            path: path.to_path_buf(),
+        })
+    }
+
+    pub fn execute_rename(&self, new_name: &str) -> Result<()> {
+        let mut new_path = self.path.clone();
+        new_path.set_file_name(new_name);
+        fs::rename(&self.path, new_path)?;
+        Ok(())
+    }
+
+    pub fn execute_delete(&self) -> Result<()> {
+        if self.path.is_dir() {
+            fs::remove_dir_all(&self.path)?;
+        } else {
+            fs::remove_file(&self.path)?;
+        }
+        Ok(())
     }
 }
