@@ -1,4 +1,4 @@
-use crate::file_system::FileItem;
+use crate::file_system::{FileItem, FileKind};
 use anyhow::{Context, Result, bail};
 use crossterm::execute;
 use ratatui::style::{Color, Modifier, Style};
@@ -6,7 +6,6 @@ use ratatui::widgets::{Block, Borders};
 use ratatui_textarea::{CursorMove, Input, Key, TextArea};
 use std::path::{Path, PathBuf};
 use std::{fs, io, mem::uninitialized};
-use crate::file_system::{FileItem, FileKind};
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub enum AppMode {
@@ -23,6 +22,7 @@ pub struct App {
     pub command_line: TextArea<'static>,
     pub cursor_index: usize,
     pub mode: AppMode,
+    pub current_directory: PathBuf,
     pub exit: bool,
 }
 
@@ -35,7 +35,9 @@ pub enum FileAction {
 
 impl App {
     pub fn new() -> Result<Self> {
-        let entries = fs::read_dir(".").context("failed to load current directory")?;
+        let current_directory = std::env::current_dir().context("failed to get cwd")?;
+        let entries =
+            fs::read_dir(&current_directory).context("failed to load current directory")?;
         let mut current_items = Vec::new();
         let mut edit_buffers = Vec::new();
 
@@ -56,6 +58,7 @@ impl App {
             command_line: TextArea::default(),
             cursor_index: 0,
             mode: AppMode::Normal,
+            current_directory,
             exit: false,
         })
     }
@@ -96,8 +99,8 @@ impl App {
                     name: String::new(),
                     kind: FileKind::Unknown,
                     id: None,
-                    path: self.path.clone()
-                }
+                    path: self.current_directory.clone(),
+                };
             }
             Key::Char(':') => {
                 self.mode = AppMode::Command;
