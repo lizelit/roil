@@ -1,3 +1,3 @@
-pub struct Buffer {
-    original: Vec,
-}
+pub mod buffer;
+pub mod parse;
+pub mod validation;
