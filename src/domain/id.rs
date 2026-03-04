@@ -1,4 +1,4 @@
-use std::fmt::{self, write};
+use std::fmt;
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct EntryId(u64);
