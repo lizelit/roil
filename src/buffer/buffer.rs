@@ -56,6 +56,10 @@ impl Buffer {
         }
     }
 
+    pub fn commit(&mut self) {
+        self.original = self.build_current_entries();
+    }
+
     fn snapshot(&mut self) {
         self.undo_stack.push(self.lines.clone());
         self.redo_stack.clear();
