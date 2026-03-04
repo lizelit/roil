@@ -1,9 +1,12 @@
 use std::path::PathBuf;
 
-use crate::domain::{
-    diff::{Diff, diff},
-    entry::{Entry, EntryKind},
-    id::EntryId,
+use crate::{
+    buffer::validation::{self, ValidationError},
+    domain::{
+        diff::{Diff, diff},
+        entry::{Entry, EntryKind},
+        id::EntryId,
+    },
 };
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -235,5 +238,9 @@ impl Buffer {
                 kind: line.kind,
             })
             .collect()
+    }
+
+    pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
+        validation::validate(&self.lines)
     }
 }
