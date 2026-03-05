@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UiMode {
+pub enum Mode {
     Normal,
     Insert,
-    Command { input: String },
+    Command,
 }

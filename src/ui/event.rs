@@ -1,26 +1,30 @@
-use crossterm::event::{Event as CEvent, KeyCode, read};
+use crossterm::event::{self, Event, KeyCode, KeyEvent};
 
-#[derive(Debug)]
-pub enum Event {
-    MoveUp,
-    MoveDown,
-    EnterInsert,
-    ExitInsert,
-    InsertChar(char),
-    Save,
-    Quit,
-    None,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UiEvent {
+    Up,
+    Down,
+    Left,
+    Right,
+    Enter,
+    Esc,
+    Char(char),
+    Backspace,
 }
 
-pub fn read_event() -> anyhow::Result<Event> {
-    match read()? {
-        CEvent::Key(key) => match key.code {
-            KeyCode::Char('j') => Ok(Event::MoveDown),
-            KeyCode::Char('k') => Ok(Event::MoveUp),
-            KeyCode::Char('i') => Ok(Event::EnterInsert),
-            KeyCode::Esc => Ok(Event::ExitInsert),
-            KeyCode::Char('q') => Ok(Event::Quit),
-            KeyCode::Char('w') => Ok(Event::Save),
+pub fn from_crossterm(event: Event) -> Option<UiEvent> {
+    match event {
+        Event::Key(KeyEvent { code, .. }) => match code {
+            KeyCode::Up => Some(UiEvent::Up),
+            KeyCode::Down => Some(UiEvent::Down),
+            KeyCode::Left => Some(UiEvent::Left),
+            KeyCode::Right => Some(UiEvent::Right),
+            KeyCode::Enter => Some(UiEvent::Enter),
+            KeyCode::Esc => Some(UiEvent::Esc),
+            KeyCode::Backspace => Some(UiEvent::Backspace),
+            KeyCode::Char(c) => Some(UiEvent::Char(c)),
+            _ => None,
         },
+        _ => None,
     }
 }
