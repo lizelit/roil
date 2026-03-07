@@ -4,4 +4,4 @@ mod event;
 mod mode;
 mod render;
 
-pub use mode::Mode;
+pub use mode::CurrentMode;

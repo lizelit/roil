@@ -14,7 +14,7 @@ pub enum UiEvent {
 
 pub fn from_crossterm(event: Event) -> Option<UiEvent> {
     match event {
-        Event::Key(KeyEvent { code, .. }) => match code {
+        Event::Key(key) => match key.code {
             KeyCode::Up => Some(UiEvent::Up),
             KeyCode::Down => Some(UiEvent::Down),
             KeyCode::Left => Some(UiEvent::Left),

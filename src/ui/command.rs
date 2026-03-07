@@ -1,62 +1,67 @@
+use super::mode::TargetMode;
+
 use super::event::UiEvent;
-use super::mode::Mode;
+use super::mode::{CurrentMode, InsertKind};
+
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+#[derive(Debug, Clone)]
+pub enum Action {
+    Command(Command),
+    ChangeMode(TargetMode),
+}
 
 #[derive(Debug, Clone)]
 pub enum Command {
-    MoveUp,
-    MoveDown,
-    MoveLeft,
-    MoveRight,
-
+    Move(Direction),
     InsertChar(char),
     DeleteChar,
-
-    EnterInsertMode,
-    EnterNormalMode,
-    EnterCommandMode,
-
     DeleteEntry,
     Save,
+    Quit,
 }
 
-pub fn map_event(mode: Mode, event: UiEvent) -> Option<Command> {
+pub fn map_event(mode: &CurrentMode, event: UiEvent) -> Option<Action> {
     match mode {
-        Mode::Normal => normal_mode(event),
-        Mode::Insert => insert_mode(event),
-        Mode::Command => command_mode(event),
+        CurrentMode::Normal => normal_mode(event),
+        CurrentMode::Insert => insert_mode(event),
+        CurrentMode::Command => command_mode(event),
     }
 }
 
-fn normal_mode(event: UiEvent) -> Option<Command> {
+fn normal_mode(event: UiEvent) -> Option<Action> {
     match event {
-        UiEvent::Char('h') => Some(Command::MoveLeft),
-        UiEvent::Char('j') => Some(Command::MoveDown),
-        UiEvent::Char('k') => Some(Command::MoveUp),
-        UiEvent::Char('l') => Some(Command::MoveRight),
-
-        UiEvent::Char('i') => Some(Command::EnterInsertMode),
-        UiEvent::Char(':') => Some(Command::EnterCommandMode),
-
-        UiEvent::Char('d') => Some(Command::DeleteEntry),
+        UiEvent::Char('h') => Some(Action::Command(Command::Move(Direction::Left))),
+        UiEvent::Char('j') => Some(Action::Command(Command::Move(Direction::Down))),
+        UiEvent::Char('k') => Some(Action::Command(Command::Move(Direction::Up))),
+        UiEvent::Char('l') => Some(Action::Command(Command::Move(Direction::Right))),
+        UiEvent::Char('d') => Some(Action::Command(Command::DeleteEntry)),
+        UiEvent::Char('i') => Some(Action::ChangeMode(TargetMode::Insert(
+            InsertKind::BeforeCursor,
+        ))),
+        UiEvent::Char(':') => Some(Action::ChangeMode(TargetMode::Command)),
 
         _ => None,
     }
 }
-fn insert_mode(event: UiEvent) -> Option<Command> {
+fn insert_mode(event: UiEvent) -> Option<Action> {
     match event {
-        UiEvent::Esc => Some(Command::EnterNormalMode),
-
-        UiEvent::Char(c) => Some(Command::InsertChar(c)),
-
-        UiEvent::Backspace => Some(Command::DeleteChar),
-
+        UiEvent::Esc => Some(Action::ChangeMode(TargetMode::Normal)),
+        UiEvent::Char(c) => Some(Action::Command(Command::InsertChar(c))),
+        UiEvent::Backspace => Some(Action::Command(Command::DeleteChar)),
         _ => None,
     }
 }
-fn command_mode(event: UiEvent) -> Option<Command> {
+fn command_mode(event: UiEvent) -> Option<Action> {
     match event {
-        UiEvent::Esc => Some(Command::EnterNormalMode),
-        UiEvent::Enter => Some(Command::Save),
+        UiEvent::Esc => Some(Action::ChangeMode(TargetMode::Normal)),
+        UiEvent::Enter => Some(Action::Command(Command::Save)),
         _ => None,
     }
 }
