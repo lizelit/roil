@@ -85,6 +85,10 @@ where
 
         Ok(())
     }
+
+    pub fn handle_command() {
+        todo!()
+    }
 }
 
 #[cfg(test)]

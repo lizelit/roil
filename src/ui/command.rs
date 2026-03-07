@@ -1,7 +1,5 @@
-use ratatui::widgets::Chart;
-
-use crate::ui::event::UiEvent;
-use crate::ui::mode::Mode;
+use super::event::UiEvent;
+use super::mode::Mode;
 
 #[derive(Debug, Clone)]
 pub enum Command {
