@@ -1,13 +1,9 @@
 use std::path::PathBuf;
 
-use crate::{
-    buffer::validation::{self, ValidationError},
-    domain::{
-        diff::{Diff, diff},
-        entry::{Entry, EntryKind},
-        id::EntryId,
-    },
-};
+use crate::buffer::ValidationError;
+use crate::buffer::validation::validate;
+
+use crate::domain::{Diff, Entry, EntryId, EntryKind, diff};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Cursor {
@@ -245,6 +241,6 @@ impl Buffer {
     }
 
     pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
-        validation::validate(&self.lines)
+        validate(&self.lines)
     }
 }

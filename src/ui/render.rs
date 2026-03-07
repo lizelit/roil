@@ -3,7 +3,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
-use crate::app::app::App;
+use crate::app::App;
 
 pub fn render(frame: &mut Frame, app: &App) {
     let size = frame.size();

@@ -1,5 +1,5 @@
 use super::{FileSystem, FsError};
-use crate::domain::diff::Diff;
+use crate::domain::Diff;
 
 pub fn apply_diff(fs: &mut impl FileSystem, diffs: &[Diff]) -> Result<(), FsError> {
     for diff in diffs {

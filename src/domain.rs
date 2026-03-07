@@ -1,3 +1,9 @@
-pub mod diff;
-pub mod entry;
-pub mod id;
+mod diff;
+mod entry;
+mod id;
+
+pub use diff::Diff;
+pub use diff::diff;
+pub use entry::Entry;
+pub use entry::EntryKind;
+pub use id::EntryId;

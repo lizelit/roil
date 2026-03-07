@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use crate::buffer::buffer::BufferLine;
-use crate::domain::id::EntryId;
+use crate::buffer::BufferLine;
+use crate::domain::EntryId;
 
 #[derive(Debug)]
 pub enum ValidationError {

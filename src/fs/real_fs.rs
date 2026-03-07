@@ -1,5 +1,5 @@
 use super::{FileSystem, FsError};
-use crate::domain::entry::EntryKind;
+use crate::domain::EntryKind;
 use std::fs;
 use std::path::Path;
 

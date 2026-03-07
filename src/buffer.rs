@@ -1,3 +1,7 @@
-pub mod core;
-pub mod parse;
-pub mod validation;
+mod core;
+mod parse;
+mod validation;
+
+pub use core::Buffer;
+pub use core::BufferLine;
+pub use validation::ValidationError;

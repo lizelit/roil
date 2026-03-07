@@ -1,5 +1,7 @@
-pub mod command;
-pub mod core;
-pub mod event;
-pub mod mode;
-pub mod render;
+mod command;
+mod core;
+mod event;
+mod mode;
+mod render;
+
+pub use mode::Mode;

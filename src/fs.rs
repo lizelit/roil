@@ -1,9 +1,13 @@
-pub mod apply;
-pub mod real_fs;
-pub mod virtual_fs;
+mod apply;
+mod real_fs;
+mod virtual_fs;
 
-use crate::domain::entry::EntryKind;
+use crate::domain::EntryKind;
 use std::path::Path;
+
+pub use apply::apply_diff;
+pub use real_fs::RealFs;
+pub use virtual_fs::VirtualFs;
 
 #[derive(Debug)]
 pub enum FsError {

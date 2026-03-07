@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use std::ffi::FromBytesUntilNulError;
-use std::fs::exists;
 use std::path::{Path, PathBuf};
 
 use super::{FileSystem, FsError};
-use crate::domain::entry::EntryKind;
+use crate::domain::EntryKind;
 
 pub struct VirtualFs {
     entries: HashMap<PathBuf, EntryKind>,
