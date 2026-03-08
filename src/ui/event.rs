@@ -1,4 +1,4 @@
-use crossterm::event::{self, Event, KeyCode, KeyEvent};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UiEvent {
@@ -14,7 +14,7 @@ pub enum UiEvent {
 
 pub fn from_crossterm(event: Event) -> Option<UiEvent> {
     match event {
-        Event::Key(key) => match key.code {
+        Event::Key(key) if key.kind == KeyEventKind::Press => match key.code {
             KeyCode::Up => Some(UiEvent::Up),
             KeyCode::Down => Some(UiEvent::Down),
             KeyCode::Left => Some(UiEvent::Left),
@@ -27,4 +27,9 @@ pub fn from_crossterm(event: Event) -> Option<UiEvent> {
         },
         _ => None,
     }
+}
+
+pub fn read_event() -> Option<UiEvent> {
+    let event = event::read().ok()?;
+    from_crossterm(event)
 }

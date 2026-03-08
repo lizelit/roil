@@ -5,6 +5,12 @@ use std::path::Path;
 
 pub struct RealFs;
 
+impl RealFs {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
 impl FileSystem for RealFs {
     fn rename(&mut self, from: &Path, to: &Path) -> Result<(), FsError> {
         fs::rename(from, to)?;

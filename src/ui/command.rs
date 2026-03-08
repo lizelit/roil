@@ -23,6 +23,8 @@ pub enum Command {
     InsertChar(char),
     DeleteChar,
     DeleteEntry,
+    Undo,
+    Redo,
     Save,
     Quit,
 }
@@ -41,6 +43,8 @@ fn normal_mode(event: UiEvent) -> Option<Action> {
         UiEvent::Char('j') => Some(Action::Command(Command::Move(Direction::Down))),
         UiEvent::Char('k') => Some(Action::Command(Command::Move(Direction::Up))),
         UiEvent::Char('l') => Some(Action::Command(Command::Move(Direction::Right))),
+        UiEvent::Char('u') => Some(Action::Command(Command::Undo)),
+        UiEvent::Char('U') => Some(Action::Command(Command::Redo)),
         UiEvent::Char('d') => Some(Action::Command(Command::DeleteEntry)),
         UiEvent::Char('i') => Some(Action::ChangeMode(TargetMode::Insert(
             InsertKind::BeforeCursor,

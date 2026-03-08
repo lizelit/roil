@@ -1,6 +1,9 @@
+use crossterm::cursor::MoveDown;
+
 use crate::buffer::Buffer;
 use crate::buffer::ValidationError;
 use crate::fs::{FsError, RealFs, VirtualFs, apply_diff};
+use crate::ui::{Command, Direction};
 
 pub struct App {
     pub buffer: Buffer,
@@ -77,7 +80,27 @@ impl App {
         Ok(())
     }
 
-    pub fn handle_command() {
-        todo!()
+    pub fn execute(&mut self, cmd: Command) {
+        match cmd {
+            Command::Move(Direction::Left) => self.buffer.move_left(),
+            Command::Move(Direction::Down) => self.buffer.move_down(),
+            Command::Move(Direction::Up) => self.buffer.move_up(),
+            Command::Move(Direction::Right) => self.buffer.move_right(),
+
+            Command::InsertChar(c) => self.buffer.insert_char(c),
+            Command::DeleteChar => self.buffer.delete_char(),
+            Command::DeleteEntry => self.buffer.delete_line(),
+
+            Command::Undo => self.buffer.undo(),
+            Command::Redo => self.buffer.redo(),
+
+            Command::Save => {
+                if let Err(e) = self.save() {
+                    self.set_error(format!("{:?}", e));
+                }
+            }
+
+            Command::Quit => self.request_exit(),
+        }
     }
 }

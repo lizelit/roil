@@ -22,10 +22,10 @@ pub struct BufferLine {
 }
 
 pub struct Buffer {
-    pub parent: PathBuf,
+    parent: PathBuf,
     original: Vec<Entry>,
-    pub lines: Vec<BufferLine>,
-    pub cursor: Cursor,
+    lines: Vec<BufferLine>,
+    cursor: Cursor,
     undo_stack: Vec<Vec<BufferLine>>,
     redo_stack: Vec<Vec<BufferLine>>,
 }
@@ -53,6 +53,22 @@ impl Buffer {
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
         }
+    }
+
+    pub fn cursor(&self) -> Cursor {
+        self.cursor
+    }
+
+    pub fn lines(&self) -> &[BufferLine] {
+        &self.lines
+    }
+
+    pub fn line(&self, row: usize) -> Option<&BufferLine> {
+        self.lines.get(row)
+    }
+
+    pub fn line_count(&self) -> usize {
+        self.lines.len()
     }
 
     pub fn commit(&mut self) {
