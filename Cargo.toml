@@ -2,6 +2,13 @@
 name = "roil"
 version = "0.1.0"
 edition = "2024"
+authors = ["lizelit <lizelit.you@gmail.com>"]
+description = "A TUI-based directory editor"
+license = "MIT"
+repository = "https://github.com/lizelit/roil"
+readme = "README.md"
+keywords = ["tui", "directory", "editor"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0.100"
