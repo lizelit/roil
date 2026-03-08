@@ -10,7 +10,7 @@ pub fn apply_diff(fs: &mut impl FileSystem, diffs: &[Diff]) -> Result<(), FsErro
             Diff::Delete { entry } => {
                 fs.delete(&entry.path)?;
             }
-            Diff::Rename { from, to, .. } => {
+            Diff::Rename { from, to } => {
                 fs.rename(from, to)?;
             }
         }

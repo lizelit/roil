@@ -9,6 +9,7 @@ pub use apply::apply_diff;
 pub use real_fs::RealFs;
 pub use virtual_fs::VirtualFs;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum FsError {
     NotFound,

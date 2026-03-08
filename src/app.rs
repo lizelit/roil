@@ -1,5 +1,3 @@
-use crossterm::cursor::MoveDown;
-
 use crate::buffer::Buffer;
 use crate::buffer::ValidationError;
 use crate::fs::{FsError, RealFs, VirtualFs, apply_diff};
@@ -11,17 +9,17 @@ pub struct App {
     real_fs: RealFs,
     state: AppState,
     error_message: Option<String>,
+    pub command_buffer: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AppState {
     Running,
-    ConfirmExit,
-    Saving,
     Error,
     Exiting,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum SaveError {
     Validation(Vec<ValidationError>),
@@ -36,6 +34,7 @@ impl App {
             real_fs,
             state: AppState::Running,
             error_message: None,
+            command_buffer: String::new(),
         }
     }
 
@@ -43,11 +42,28 @@ impl App {
         self.state
     }
 
-    pub fn request_exit(&mut self) {
-        if self.buffer.is_dirty() {
-            self.state = AppState::ConfirmExit;
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    pub fn request_exit(&mut self, force: bool) {
+        if self.buffer.is_dirty() && !force {
+            self.error_message = Some("No write since last change (add ! to override)".into());
+            self.state = AppState::Error;
         } else {
             self.state = AppState::Exiting;
+        }
+    }
+
+    pub fn handle_insert_kind(&mut self, kind: crate::ui::InsertKind) {
+        use crate::ui::InsertKind;
+        match kind {
+            InsertKind::BeforeCursor => {}
+            InsertKind::AfterCursor => self.buffer.move_right(),
+            InsertKind::LineStart => self.buffer.move_to_line_start(),
+            InsertKind::LineEnd => self.buffer.move_to_line_end(),
+            InsertKind::NewLineBelow => self.buffer.add_line_below(crate::domain::EntryId::generate(), crate::domain::EntryKind::File),
+            InsertKind::NewLineAbove => self.buffer.add_line_above(crate::domain::EntryId::generate(), crate::domain::EntryKind::File),
         }
     }
 
@@ -80,27 +96,77 @@ impl App {
         Ok(())
     }
 
-    pub fn execute(&mut self, cmd: Command) {
-        match cmd {
-            Command::Move(Direction::Left) => self.buffer.move_left(),
-            Command::Move(Direction::Down) => self.buffer.move_down(),
-            Command::Move(Direction::Up) => self.buffer.move_up(),
-            Command::Move(Direction::Right) => self.buffer.move_right(),
+    pub fn execute_cmd(&mut self) {
+        let cmd = self.command_buffer.trim().to_string();
+        self.command_buffer.clear();
 
-            Command::InsertChar(c) => self.buffer.insert_char(c),
-            Command::DeleteChar => self.buffer.delete_char(),
-            Command::DeleteEntry => self.buffer.delete_line(),
-
-            Command::Undo => self.buffer.undo(),
-            Command::Redo => self.buffer.redo(),
-
-            Command::Save => {
+        match cmd.as_str() {
+            "w" => {
                 if let Err(e) = self.save() {
                     self.set_error(format!("{:?}", e));
                 }
             }
+            "q" => {
+                self.request_exit(false);
+            }
+            "q!" => {
+                self.request_exit(true);
+            }
+            "wq" => {
+                if let Err(e) = self.save() {
+                    self.set_error(format!("{:?}", e));
+                } else {
+                    self.request_exit(false);
+                }
+            }
+            "wq!" => {
+                if let Err(e) = self.save() {
+                    self.set_error(format!("{:?}", e));
+                } else {
+                    self.request_exit(true);
+                }
+            }
+            "" => {}
+            _ => {
+                self.set_error(format!("Unknown command: {}", cmd));
+            }
+        }
+    }
 
-            Command::Quit => self.request_exit(),
+    pub fn execute(&mut self, cmd: Command) {
+        match cmd {
+            Command::Move(dir, count) => {
+                for _ in 0..count {
+                    match dir {
+                        Direction::Left => self.buffer.move_left(),
+                        Direction::Down => self.buffer.move_down(),
+                        Direction::Up => self.buffer.move_up(),
+                        Direction::Right => self.buffer.move_right(),
+                    }
+                }
+            }
+
+            Command::InsertChar(c) => self.buffer.insert_char(c),
+            Command::InsertNewLine => self.buffer.insert_newline(crate::domain::EntryId::generate()),
+            Command::DeleteChar => self.buffer.delete_char(),
+            Command::DeleteEntry(count) => {
+                for _ in 0..count {
+                    self.buffer.delete_line();
+                }
+            }
+
+            Command::Undo => self.buffer.undo(),
+            Command::Redo => self.buffer.redo(),
+
+            Command::Input(c) => {
+                self.command_buffer.push(c);
+            }
+            Command::Backspace => {
+                self.command_buffer.pop();
+            }
+
+            Command::Execute => unreachable!(),
+            Command::Quit => self.request_exit(false),
         }
     }
 }

@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::buffer::BufferLine;
 use crate::domain::EntryId;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ValidationError {
     EmptyName { id: EntryId },
@@ -17,7 +18,6 @@ pub fn validate(lines: &[BufferLine]) -> Result<(), Vec<ValidationError>> {
         let trimmed = line.name.trim();
 
         if trimmed.is_empty() {
-            errors.push(ValidationError::EmptyName { id: line.id });
             continue;
         }
 

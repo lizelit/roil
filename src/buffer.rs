@@ -34,21 +34,29 @@ impl Buffer {
     pub fn new(parent: PathBuf, entries: Vec<Entry>) -> Self {
         let lines = entries
             .iter()
-            .map(|e| BufferLine {
-                id: e.id,
-                name: e
+            .map(|e| {
+                let mut name = e
                     .path
                     .file_name()
                     .expect("entry path must have file name")
                     .to_string_lossy()
-                    .to_string(),
-                kind: e.kind,
+                    .to_string();
+                
+                if matches!(e.kind, EntryKind::Directory) && !name.ends_with('/') {
+                    name.push('/');
+                }
+
+                BufferLine {
+                    id: e.id,
+                    name,
+                    kind: e.kind,
+                }
             })
             .collect();
         Self {
-            parent: parent,
+            parent,
             original: entries,
-            lines: lines,
+            lines,
             cursor: Cursor::default(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
@@ -65,10 +73,6 @@ impl Buffer {
 
     pub fn line(&self, row: usize) -> Option<&BufferLine> {
         self.lines.get(row)
-    }
-
-    pub fn line_count(&self) -> usize {
-        self.lines.len()
     }
 
     pub fn commit(&mut self) {
@@ -113,6 +117,16 @@ impl Buffer {
 
     pub fn move_right(&mut self) {
         self.cursor.col = self.cursor.col.saturating_add(1);
+        self.clamp_cursor();
+    }
+
+    pub fn move_to_line_start(&mut self) {
+        self.cursor.col = 0;
+        self.clamp_cursor();
+    }
+
+    pub fn move_to_line_end(&mut self) {
+        self.cursor.col = self.current_line_len();
         self.clamp_cursor();
     }
 
@@ -169,16 +183,59 @@ impl Buffer {
         self.cursor.col += 1;
     }
 
+    pub fn insert_newline(&mut self, id: EntryId) {
+        let row = self.cursor.row;
+        let col = self.cursor.col;
+
+        self.snapshot();
+
+        if row >= self.lines.len() {
+            // Buffer is completely empty
+            self.lines.push(BufferLine {
+                id,
+                name: String::new(),
+                kind: crate::domain::EntryKind::File,
+            });
+            self.cursor.row = 0;
+            self.cursor.col = 0;
+            return;
+        }
+
+        let kind = self.lines[row].kind;
+        
+        let mut chars: Vec<char> = self.lines[row].name.chars().collect();
+        let new_chars = chars.split_off(col);
+        
+        self.lines[row].name = chars.into_iter().collect();
+
+        self.lines.insert(
+            row + 1,
+            BufferLine {
+                id,
+                name: new_chars.into_iter().collect(),
+                kind,
+            },
+        );
+
+        self.cursor.row += 1;
+        self.cursor.col = 0;
+    }
+
     pub fn delete_char(&mut self) {
         let col = self.cursor.col;
 
         if col == 0 {
-            return;
-        }
-
-        let len = self.current_line_len();
-
-        if col - 1 >= len {
+            if self.cursor.row > 0 && self.current_line_len() == 0 {
+                // If it's an empty line, delete the line directly and move up
+                self.lines.remove(self.cursor.row);
+                // Clamp max row just in case
+                if self.cursor.row > self.lines.len() {
+                    self.cursor.row = self.lines.len();
+                }
+                
+                self.cursor.row -= 1;
+                self.move_to_line_end();
+            }
             return;
         }
 
@@ -216,7 +273,7 @@ impl Buffer {
             BufferLine {
                 id,
                 name: String::new(),
-                kind: kind,
+                kind,
             },
         );
 
@@ -234,7 +291,7 @@ impl Buffer {
             BufferLine {
                 id,
                 name: String::new(),
-                kind: kind,
+                kind,
             },
         );
 
@@ -251,10 +308,17 @@ impl Buffer {
     pub fn build_current_entries(&self) -> Vec<Entry> {
         self.lines
             .iter()
-            .map(|line| Entry {
-                id: line.id,
-                path: self.parent.join(&line.name),
-                kind: line.kind,
+            .filter(|line| !line.name.trim().is_empty())
+            .map(|line| {
+                let is_dir = line.name.ends_with('/');
+                let kind = if is_dir { EntryKind::Directory } else { EntryKind::File };
+                let strip_name = if is_dir { &line.name[..line.name.len()-1] } else { &line.name };
+
+                Entry {
+                    id: line.id,
+                    path: self.parent.join(strip_name),
+                    kind,
+                }
             })
             .collect()
     }

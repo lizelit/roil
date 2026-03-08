@@ -11,7 +11,6 @@ pub enum Diff {
         entry: Entry,
     },
     Rename {
-        id: EntryId,
         from: PathBuf,
         to: PathBuf,
     },
@@ -34,7 +33,6 @@ pub fn diff(original: &[Entry], current: &[Entry]) -> Vec<Diff> {
             Some(curr) => {
                 if orig.path != curr.path {
                     result.push(Diff::Rename {
-                        id: *id,
                         from: orig.path.clone(),
                         to: curr.path.clone(),
                     });

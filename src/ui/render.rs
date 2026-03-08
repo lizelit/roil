@@ -7,21 +7,21 @@ use unicode_width::UnicodeWidthStr;
 
 use crate::app::App;
 
-pub fn render(frame: &mut Frame, app: &App) {
+pub fn render(frame: &mut Frame, app: &App, mode: &crate::ui::mode::CurrentMode) {
     let area = frame.size();
 
     let [main, status] = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(1), Constraint::Length(1)])
+        .constraints([Constraint::Min(0), Constraint::Length(1)])
         .areas(area);
 
     frame.render_widget(buffer_widget(app), main);
-    frame.render_widget(status_widget(app), status);
+    frame.render_widget(status_widget(app, mode), status);
 
     draw_cursor(frame, main, app);
 }
 
-fn buffer_widget(app: &App) -> Paragraph {
+fn buffer_widget(app: &App) -> Paragraph<'_> {
     let text = app
         .buffer
         .lines()
@@ -33,11 +33,23 @@ fn buffer_widget(app: &App) -> Paragraph {
     Paragraph::new(text).block(Block::default().borders(Borders::ALL))
 }
 
-fn status_widget(app: &App) -> Paragraph {
-    let c = app.buffer.cursor();
-    let text = format!(" row:{} col:{} ", c.row + 1, c.col + 1);
+fn status_widget<'a>(app: &'a App, mode: &crate::ui::mode::CurrentMode) -> Paragraph<'a> {
+    let mut text = String::new();
 
-    Paragraph::new(text).block(Block::default().borders(Borders::TOP))
+    if *mode == crate::ui::mode::CurrentMode::Command {
+        text.push_str(&format!(":{} ", app.command_buffer));
+    } else {
+        let c = app.buffer.cursor();
+        text.push_str(&format!(" row:{} col:{} ", c.row + 1, c.col + 1));
+    }
+
+    if app.state() == crate::app::AppState::Error
+        && let Some(msg) = app.error_message()
+    {
+        text.push_str(&format!("| ERROR: {} ", msg));
+    }
+
+    Paragraph::new(text)
 }
 
 fn draw_cursor(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
