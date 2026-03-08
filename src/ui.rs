@@ -1,4 +1,4 @@
-mod command;
+pub mod command;
 mod event;
 pub mod mode;
 mod render;
@@ -11,7 +11,7 @@ use render::render;
 
 use std::io::Stdout;
 
-pub use command::{Command, Direction};
+pub use self::command::{Command, Direction};
 pub use mode::InsertKind;
 
 use crate::app::App;

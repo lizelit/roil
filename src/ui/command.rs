@@ -18,6 +18,7 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum Command {
     Move(Direction, usize),
     InsertChar(char),
@@ -42,7 +43,6 @@ pub fn map_event(mode: &CurrentMode, pending_keys: &mut String, event: UiEvent) 
 
 fn normal_mode(pending_keys: &mut String, event: UiEvent) -> Option<Action> {
     let UiEvent::Char(c) = event else {
-        // If it's an Esc or something else, we reset the pending buffer
         if event == UiEvent::Esc {
             pending_keys.clear();
         }
@@ -51,7 +51,6 @@ fn normal_mode(pending_keys: &mut String, event: UiEvent) -> Option<Action> {
 
     pending_keys.push(c);
 
-    // Parse the pending keys
     let mut count_str = String::new();
     let mut cmd_str = String::new();
 
@@ -70,32 +69,56 @@ fn normal_mode(pending_keys: &mut String, event: UiEvent) -> Option<Action> {
     };
 
     match cmd_str.as_str() {
-        "h" => consume_and_return(pending_keys, Action::Command(Command::Move(Direction::Left, count))),
-        "j" => consume_and_return(pending_keys, Action::Command(Command::Move(Direction::Down, count))),
-        "k" => consume_and_return(pending_keys, Action::Command(Command::Move(Direction::Up, count))),
-        "l" => consume_and_return(pending_keys, Action::Command(Command::Move(Direction::Right, count))),
+        "h" => consume_and_return(
+            pending_keys,
+            Action::Command(Command::Move(Direction::Left, count)),
+        ),
+        "j" => consume_and_return(
+            pending_keys,
+            Action::Command(Command::Move(Direction::Down, count)),
+        ),
+        "k" => consume_and_return(
+            pending_keys,
+            Action::Command(Command::Move(Direction::Up, count)),
+        ),
+        "l" => consume_and_return(
+            pending_keys,
+            Action::Command(Command::Move(Direction::Right, count)),
+        ),
         "u" => consume_and_return(pending_keys, Action::Command(Command::Undo)),
         "U" => consume_and_return(pending_keys, Action::Command(Command::Redo)),
         "dd" => consume_and_return(pending_keys, Action::Command(Command::DeleteEntry(count))),
-        "q" => consume_and_return(pending_keys, Action::Command(Command::Quit)),
-        "i" => consume_and_return(pending_keys, Action::ChangeMode(TargetMode::Insert(InsertKind::BeforeCursor))),
-        "a" => consume_and_return(pending_keys, Action::ChangeMode(TargetMode::Insert(InsertKind::AfterCursor))),
-        "I" => consume_and_return(pending_keys, Action::ChangeMode(TargetMode::Insert(InsertKind::LineStart))),
-        "A" => consume_and_return(pending_keys, Action::ChangeMode(TargetMode::Insert(InsertKind::LineEnd))),
-        "o" => consume_and_return(pending_keys, Action::ChangeMode(TargetMode::Insert(InsertKind::NewLineBelow))),
-        "O" => consume_and_return(pending_keys, Action::ChangeMode(TargetMode::Insert(InsertKind::NewLineAbove))),
+        "i" => consume_and_return(
+            pending_keys,
+            Action::ChangeMode(TargetMode::Insert(InsertKind::BeforeCursor)),
+        ),
+        "a" => consume_and_return(
+            pending_keys,
+            Action::ChangeMode(TargetMode::Insert(InsertKind::AfterCursor)),
+        ),
+        "I" => consume_and_return(
+            pending_keys,
+            Action::ChangeMode(TargetMode::Insert(InsertKind::LineStart)),
+        ),
+        "A" => consume_and_return(
+            pending_keys,
+            Action::ChangeMode(TargetMode::Insert(InsertKind::LineEnd)),
+        ),
+        "o" => consume_and_return(
+            pending_keys,
+            Action::ChangeMode(TargetMode::Insert(InsertKind::NewLineBelow)),
+        ),
+        "O" => consume_and_return(
+            pending_keys,
+            Action::ChangeMode(TargetMode::Insert(InsertKind::NewLineAbove)),
+        ),
         ":" => consume_and_return(pending_keys, Action::ChangeMode(TargetMode::Command)),
-        
-        "d" => None, // Pending: wait for the second 'd'
-        
-        // If no prefix commands are matched, invalid key combination, clear the buffer
+
+        "d" => None,
+
         _ => {
-            // Check if it's potentially a valid prefix to allow for multi-key commands
-            // For now, only 'd' is a valid prefix, and digits are correctly consumed as count.
-            // If it's neither a number prefix nor 'd', clear it.
-            // But if it's purely digits, it's just accumulating count:
             if cmd_str.is_empty() {
-                None // Accumulating digits
+                None
             } else {
                 pending_keys.clear();
                 None
