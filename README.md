@@ -29,3 +29,5 @@ Currently, you can install the alpha version via **cargo**: \
 
 ```bash
 cargo install roil
+```
+バグ報告，機能の追加，修正の提案はIssue, Discussionにいただけるとありがたいです．
