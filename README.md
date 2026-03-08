@@ -1,7 +1,6 @@
 # Roil
 
 A TUI-based directory structure refactoring tool, designed for seamless file organization.
-(TUIベースのディレクトリ構造リファクタリングツール)
 
 ---
 
