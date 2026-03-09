@@ -39,8 +39,14 @@ fn status_widget<'a>(app: &'a App, mode: &crate::ui::mode::CurrentMode) -> Parag
     if *mode == crate::ui::mode::CurrentMode::Command {
         text.push_str(&format!(":{} ", app.command_buffer));
     } else {
+        let mode_str = match mode {
+            crate::ui::mode::CurrentMode::Normal => "-- NORMAL --",
+            crate::ui::mode::CurrentMode::Insert => "-- INSERT --",
+            _ => unreachable!(),
+        };
         let c = app.buffer.cursor();
-        text.push_str(&format!(" row:{} col:{} ", c.row + 1, c.col + 1));
+        text.push_str(&format!(" {}:{} ", c.row + 1, c.col + 1));
+        text.push_str(mode_str);
     }
 
     if app.state() == crate::app::AppState::Error

@@ -42,14 +42,28 @@ pub fn map_event(mode: &CurrentMode, pending_keys: &mut String, event: UiEvent) 
 }
 
 fn normal_mode(pending_keys: &mut String, event: UiEvent) -> Option<Action> {
-    let UiEvent::Char(c) = event else {
-        if event == UiEvent::Esc {
-            pending_keys.clear();
-        }
-        return None;
-    };
+    // let UiEvent::Char(c) = event else {
+    //     if event == UiEvent::Esc {
+    //         pending_keys.clear();
+    //     }
+    //     return None;
+    // };
 
-    pending_keys.push(c);
+    // pending_keys.push(c);
+    if let UiEvent::Char(c) = event {
+        pending_keys.push(c);
+    } else {
+        let action = match event {
+            UiEvent::Left => Some(Action::Command(Command::Move(Direction::Left, 1))),
+            UiEvent::Down => Some(Action::Command(Command::Move(Direction::Down, 1))),
+            UiEvent::Up => Some(Action::Command(Command::Move(Direction::Up, 1))),
+            UiEvent::Right => Some(Action::Command(Command::Move(Direction::Right, 1))),
+            _ => None,
+        };
+
+        pending_keys.clear();
+        return action;
+    };
 
     let mut count_str = String::new();
     let mut cmd_str = String::new();
@@ -137,6 +151,10 @@ fn insert_mode(event: UiEvent) -> Option<Action> {
         UiEvent::Enter => Some(Action::Command(Command::InsertNewLine)),
         UiEvent::Char(c) => Some(Action::Command(Command::InsertChar(c))),
         UiEvent::Backspace => Some(Action::Command(Command::DeleteChar)),
+        UiEvent::Left => Some(Action::Command(Command::Move(Direction::Left, 1))),
+        UiEvent::Down => Some(Action::Command(Command::Move(Direction::Down, 1))),
+        UiEvent::Up => Some(Action::Command(Command::Move(Direction::Up, 1))),
+        UiEvent::Right => Some(Action::Command(Command::Move(Direction::Right, 1))),
         _ => None,
     }
 }
