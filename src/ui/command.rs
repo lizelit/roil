@@ -155,7 +155,7 @@ fn insert_mode(event: UiEvent) -> Option<Action> {
         UiEvent::Down => Some(Action::Command(Command::Move(Direction::Down, 1))),
         UiEvent::Up => Some(Action::Command(Command::Move(Direction::Up, 1))),
         UiEvent::Right => Some(Action::Command(Command::Move(Direction::Right, 1))),
-        _ => None,
+        // _ => None,
     }
 }
 fn command_mode(event: UiEvent) -> Option<Action> {
