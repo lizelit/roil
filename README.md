@@ -32,31 +32,6 @@ cargo install roil
 ```
 バグ報告，機能の追加，修正の提案はIssue, Discussionにいただけるとありがたいです．
 ## 使用している動画
-
-<figure>
-      <b>create</b>
-  <video src="https://github.com/user-attachments/assets/3e2129f2-ebd3-45a8-9468-151beddb8587" width="100%" autoplay muted loop playsinline></video>
-  <figcaption align="center">
-
-  </figcaption>
-</figure>
-
-<figure>
-  <b>delete</b>
-  <video src="https://github.com/user-attachments/assets/fbbbe07a-5a9e-4421-941d-085cf80d99ee" width="100%" autoplay muted loop playsinline></video>
-  <figcaption align="center">
-
-  </figcaption>
-</figure>
-
-
-<figure>
-  <b>rename</b>
-  <video src="https://github.com/user-attachments/assets/c2435f16-35a4-4797-b403-155275a90cf9" width="100%" autoplay muted loop playsinline></video>
-  <figcaption align="center">
-
-  </figcaption>
-</figure>
-
-
-
+<video src="https://github.com/user-attachments/assets/fe98e9fa-28bd-49ca-8bc3-6d57815a11d0" width="100%" autoplay muted loop playsinline></video>
+<video src="https://github.com/user-attachments/assets/2bac0761-19d1-4043-987a-016ab0392247" width="100%" autoplay muted loop playsinline></video> 
+<video src="https://github.com/user-attachments/assets/1034e7bd-4a24-43b7-bf09-a9e3f5bc9565" width="100%" autoplay muted loop playsinline></video>
