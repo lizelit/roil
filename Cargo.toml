@@ -13,6 +13,7 @@ categories = ["command-line-utilities"]
 [dependencies]
 anyhow = "1.0.100"
 crossterm = "0.27.0"
+natord = "1.0.9"
 ratatui = "0.26"
 ratatui-textarea = "0.4.1"
 unicode-width = "0.2.2"
