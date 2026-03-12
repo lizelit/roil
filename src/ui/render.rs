@@ -7,13 +7,16 @@ use unicode_width::UnicodeWidthStr;
 
 use crate::app::App;
 
-pub fn render(frame: &mut Frame, app: &App, mode: &crate::ui::mode::CurrentMode) {
+pub fn render(frame: &mut Frame, app: &mut App, mode: &crate::ui::mode::CurrentMode) {
     let area = frame.size();
 
     let [main, status] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(1)])
         .areas(area);
+
+    app.view_height = main.height.saturating_sub(2) as usize;
+    app.update_scroll();
 
     frame.render_widget(buffer_widget(app), main);
     frame.render_widget(status_widget(app, mode), status);
@@ -26,6 +29,8 @@ fn buffer_widget(app: &App) -> Paragraph<'_> {
         .buffer
         .lines()
         .iter()
+        .skip(app.scroll_offset)
+        .take(app.view_height)
         .map(|l| l.name.as_str())
         .collect::<Vec<_>>()
         .join("\n");
@@ -61,6 +66,12 @@ fn status_widget<'a>(app: &'a App, mode: &crate::ui::mode::CurrentMode) -> Parag
 fn draw_cursor(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
     let cursor = app.buffer.cursor();
 
+    let relative_row = cursor.row.saturating_sub(app.scroll_offset);
+
+    if relative_row >= app.view_height {
+        return;
+    }
+
     let Some(line) = app.buffer.line(cursor.row) else {
         return;
     };
@@ -72,5 +83,8 @@ fn draw_cursor(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
         .map(|c| c.to_string().width())
         .sum::<usize>();
 
-    frame.set_cursor(area.x + 1 + col as u16, area.y + 1 + cursor.row as u16);
+    let cursor_y = area.y + 1 + relative_row as u16;
+    let cursor_x = area.x + 1 + col as u16;
+
+    frame.set_cursor(cursor_x, cursor_y);
 }

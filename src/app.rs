@@ -4,6 +4,8 @@ use crate::fs::{FsError, RealFs, VirtualFs, apply_diff};
 use crate::ui::{Command, Direction};
 
 pub struct App {
+    pub scroll_offset: usize,
+    pub view_height: usize,
     pub buffer: Buffer,
     virtual_fs: VirtualFs,
     real_fs: RealFs,
@@ -29,6 +31,8 @@ pub enum SaveError {
 impl App {
     pub fn new(buffer: Buffer, virtual_fs: VirtualFs, real_fs: RealFs) -> Self {
         Self {
+            scroll_offset: 0,
+            view_height: 0,
             buffer,
             virtual_fs,
             real_fs,
@@ -40,6 +44,18 @@ impl App {
 
     pub fn state(&self) -> AppState {
         self.state
+    }
+
+    pub fn update_scroll(&mut self) {
+        let cursor_row = self.buffer.cursor().row;
+
+        if cursor_row < self.scroll_offset {
+            self.scroll_offset = cursor_row;
+        }
+
+        if self.view_height > 0 && cursor_row >= self.scroll_offset + self.view_height {
+            self.scroll_offset = cursor_row - self.view_height + 1;
+        }
     }
 
     pub fn error_message(&self) -> Option<&str> {
@@ -62,8 +78,14 @@ impl App {
             InsertKind::AfterCursor => self.buffer.move_right(),
             InsertKind::LineStart => self.buffer.move_to_line_start(),
             InsertKind::LineEnd => self.buffer.move_to_line_end(),
-            InsertKind::NewLineBelow => self.buffer.add_line_below(crate::domain::EntryId::generate(), crate::domain::EntryKind::File),
-            InsertKind::NewLineAbove => self.buffer.add_line_above(crate::domain::EntryId::generate(), crate::domain::EntryKind::File),
+            InsertKind::NewLineBelow => self.buffer.add_line_below(
+                crate::domain::EntryId::generate(),
+                crate::domain::EntryKind::File,
+            ),
+            InsertKind::NewLineAbove => self.buffer.add_line_above(
+                crate::domain::EntryId::generate(),
+                crate::domain::EntryKind::File,
+            ),
         }
     }
 
@@ -147,7 +169,9 @@ impl App {
             }
 
             Command::InsertChar(c) => self.buffer.insert_char(c),
-            Command::InsertNewLine => self.buffer.insert_newline(crate::domain::EntryId::generate()),
+            Command::InsertNewLine => self
+                .buffer
+                .insert_newline(crate::domain::EntryId::generate()),
             Command::DeleteChar => self.buffer.delete_char(),
             Command::DeleteEntry(count) => {
                 for _ in 0..count {
