@@ -41,7 +41,7 @@ impl Buffer {
                     .expect("entry path must have file name")
                     .to_string_lossy()
                     .to_string();
-                
+
                 if matches!(e.kind, EntryKind::Directory) && !name.ends_with('/') {
                     name.push('/');
                 }
@@ -202,10 +202,10 @@ impl Buffer {
         }
 
         let kind = self.lines[row].kind;
-        
+
         let mut chars: Vec<char> = self.lines[row].name.chars().collect();
         let new_chars = chars.split_off(col);
-        
+
         self.lines[row].name = chars.into_iter().collect();
 
         self.lines.insert(
@@ -232,7 +232,7 @@ impl Buffer {
                 if self.cursor.row > self.lines.len() {
                     self.cursor.row = self.lines.len();
                 }
-                
+
                 self.cursor.row -= 1;
                 self.move_to_line_end();
             }
@@ -311,8 +311,16 @@ impl Buffer {
             .filter(|line| !line.name.trim().is_empty())
             .map(|line| {
                 let is_dir = line.name.ends_with('/');
-                let kind = if is_dir { EntryKind::Directory } else { EntryKind::File };
-                let strip_name = if is_dir { &line.name[..line.name.len()-1] } else { &line.name };
+                let kind = if is_dir {
+                    EntryKind::Directory
+                } else {
+                    EntryKind::File
+                };
+                let strip_name = if is_dir {
+                    &line.name[..line.name.len() - 1]
+                } else {
+                    &line.name
+                };
 
                 Entry {
                     id: line.id,
@@ -325,5 +333,75 @@ impl Buffer {
 
     pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
         validate(&self.lines)
+    }
+
+    pub fn refresh(&mut self) -> std::io::Result<()> {
+        let mut new_entries = Vec::new();
+
+        if let Ok(read_dir) = std::fs::read_dir(&self.parent) {
+            for entry in read_dir.flatten() {
+                let path = entry.path();
+                let kind = if path.is_dir() {
+                    EntryKind::Directory
+                } else {
+                    EntryKind::File
+                };
+                new_entries.push(Entry {
+                    id: EntryId::generate(),
+                    path,
+                    kind,
+                });
+            }
+        }
+
+        new_entries.sort_by(|a, b| {
+            let a_is_dir = matches!(a.kind, EntryKind::Directory);
+            let b_is_dir = matches!(b.kind, EntryKind::Directory);
+
+            b_is_dir.cmp(&a_is_dir).then_with(|| {
+                let a_name = a
+                    .path
+                    .file_name()
+                    .map(|n| n.to_string_lossy())
+                    .unwrap_or_default();
+                let b_name = b
+                    .path
+                    .file_name()
+                    .map(|n| n.to_string_lossy())
+                    .unwrap_or_default();
+
+                natord::compare(&a_name, &b_name)
+            })
+        });
+
+        let new_lines: Vec<BufferLine> = new_entries
+            .iter()
+            .map(|e| {
+                let mut name = e
+                    .path
+                    .file_name()
+                    .expect("entry path must have file name")
+                    .to_string_lossy()
+                    .to_string();
+                if matches!(e.kind, EntryKind::Directory) && !name.ends_with('/') {
+                    name.push('/');
+                }
+
+                BufferLine {
+                    id: e.id,
+                    name,
+                    kind: e.kind,
+                }
+            })
+            .collect();
+        self.original = new_entries;
+        self.lines = new_lines;
+
+        self.undo_stack.clear();
+        self.redo_stack.clear();
+
+        self.clamp_cursor();
+
+        Ok(())
     }
 }
