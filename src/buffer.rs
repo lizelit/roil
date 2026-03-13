@@ -63,12 +63,20 @@ impl Buffer {
         }
     }
 
+    pub fn parent(&self) -> PathBuf {
+        self.parent.clone()
+    }
+
     pub fn cursor(&self) -> Cursor {
         self.cursor
     }
 
     pub fn lines(&self) -> &[BufferLine] {
         &self.lines
+    }
+
+    pub fn current_line(&self) -> Option<&BufferLine> {
+        self.lines.get(self.cursor.row)
     }
 
     pub fn line(&self, row: usize) -> Option<&BufferLine> {
@@ -143,10 +151,6 @@ impl Buffer {
         if self.cursor.col > len {
             self.cursor.col = len;
         }
-    }
-
-    fn current_line(&self) -> Option<&BufferLine> {
-        self.lines.get(self.cursor.row)
     }
 
     fn current_line_mut(&mut self) -> Option<&mut BufferLine> {
@@ -403,5 +407,12 @@ impl Buffer {
         self.clamp_cursor();
 
         Ok(())
+    }
+
+    pub fn cd(&mut self, selection: &BufferLine) {
+        let dirname = selection.name.trim_matches('/');
+        self.parent = self.parent.join(dirname);
+        let _ = self.refresh();
+        self.cursor.row = 0;
     }
 }
