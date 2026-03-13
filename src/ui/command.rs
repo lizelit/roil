@@ -28,6 +28,7 @@ pub enum Command {
     Undo,
     Redo,
     Quit,
+    Enter,
     Input(char),
     Backspace,
     Execute,
@@ -58,6 +59,7 @@ fn normal_mode(pending_keys: &mut String, event: UiEvent) -> Option<Action> {
             UiEvent::Down => Some(Action::Command(Command::Move(Direction::Down, 1))),
             UiEvent::Up => Some(Action::Command(Command::Move(Direction::Up, 1))),
             UiEvent::Right => Some(Action::Command(Command::Move(Direction::Right, 1))),
+            UiEvent::Enter => Some(Action::Command(Command::Enter)),
             _ => None,
         };
 

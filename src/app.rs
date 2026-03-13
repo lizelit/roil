@@ -1,5 +1,6 @@
 use crate::buffer::Buffer;
 use crate::buffer::ValidationError;
+use crate::domain::EntryKind;
 use crate::fs::{FsError, RealFs, VirtualFs, apply_diff};
 use crate::ui::{Command, Direction};
 
@@ -12,6 +13,10 @@ pub struct App {
     state: AppState,
     error_message: Option<String>,
     pub command_buffer: String,
+}
+
+pub enum AppEffect {
+    OpenEditor(std::path::PathBuf),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -155,7 +160,7 @@ impl App {
         }
     }
 
-    pub fn execute(&mut self, cmd: Command) {
+    pub fn execute(&mut self, cmd: Command) -> Option<AppEffect> {
         match cmd {
             Command::Move(dir, count) => {
                 for _ in 0..count {
@@ -166,31 +171,68 @@ impl App {
                         Direction::Right => self.buffer.move_right(),
                     }
                 }
+                None
             }
 
-            Command::InsertChar(c) => self.buffer.insert_char(c),
-            Command::InsertNewLine => self
-                .buffer
-                .insert_newline(crate::domain::EntryId::generate()),
-            Command::DeleteChar => self.buffer.delete_char(),
+            Command::InsertChar(c) => {
+                self.buffer.insert_char(c);
+                None
+            }
+            Command::InsertNewLine => {
+                self.buffer
+                    .insert_newline(crate::domain::EntryId::generate());
+                None
+            }
+            Command::DeleteChar => {
+                self.buffer.delete_char();
+                None
+            }
             Command::DeleteEntry(count) => {
                 for _ in 0..count {
                     self.buffer.delete_line();
                 }
+                None
             }
 
-            Command::Undo => self.buffer.undo(),
-            Command::Redo => self.buffer.redo(),
+            Command::Undo => {
+                self.buffer.undo();
+                None
+            }
+            Command::Redo => {
+                self.buffer.redo();
+                None
+            }
 
             Command::Input(c) => {
                 self.command_buffer.push(c);
+                None
             }
             Command::Backspace => {
                 self.command_buffer.pop();
+                None
+            }
+
+            Command::Enter => {
+                let selection = self.buffer.current_line().cloned();
+                if let Some(selection) = selection {
+                    match selection.kind {
+                        EntryKind::File => {
+                            let path = self.buffer.parent().join(selection.name);
+                            return Some(AppEffect::OpenEditor(path));
+                        }
+                        EntryKind::Directory => {
+                            self.buffer.cd(&selection);
+                        }
+                    }
+                }
+                None
             }
 
             Command::Execute => unreachable!(),
-            Command::Quit => self.request_exit(false),
+            Command::Quit => {
+                self.request_exit(false);
+                None
+            }
         }
     }
 }
