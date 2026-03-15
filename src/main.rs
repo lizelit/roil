@@ -33,9 +33,7 @@ fn main() -> io::Result<()> {
     let mut ui = Ui::new(terminal);
     let parent = PathBuf::from(".");
 
-    let mut buffer = Buffer::new(parent, Vec::new());
-
-    buffer.refresh()?;
+    let buffer = Buffer::new(parent)?;
 
     let initial_vfs = buffer
         .build_current_entries()
