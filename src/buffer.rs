@@ -1,4 +1,3 @@
-mod parse;
 mod validation;
 
 pub use validation::ValidationError;
@@ -19,6 +18,13 @@ pub struct BufferLine {
     pub id: EntryId,
     pub name: String,
     pub kind: EntryKind,
+    line_kind: BufferLineKind,
+}
+
+#[derive(Clone, Debug)]
+enum BufferLineKind {
+    Parent,
+    Entry,
 }
 
 pub struct Buffer {
@@ -31,36 +37,18 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub fn new(parent: PathBuf, entries: Vec<Entry>) -> Self {
-        let lines = entries
-            .iter()
-            .map(|e| {
-                let mut name = e
-                    .path
-                    .file_name()
-                    .expect("entry path must have file name")
-                    .to_string_lossy()
-                    .to_string();
-
-                if matches!(e.kind, EntryKind::Directory) && !name.ends_with('/') {
-                    name.push('/');
-                }
-
-                BufferLine {
-                    id: e.id,
-                    name,
-                    kind: e.kind,
-                }
-            })
-            .collect();
-        Self {
+    pub fn new(parent: PathBuf) -> std::io::Result<Self> {
+        let mut buf = Self {
             parent,
-            original: entries,
-            lines,
+            original: Vec::new(),
+            lines: Vec::new(),
             cursor: Cursor::default(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
-        }
+        };
+
+        buf.refresh()?;
+        Ok(buf)
     }
 
     pub fn parent(&self) -> PathBuf {
@@ -194,11 +182,11 @@ impl Buffer {
         self.snapshot();
 
         if row >= self.lines.len() {
-            // Buffer is completely empty
             self.lines.push(BufferLine {
                 id,
                 name: String::new(),
                 kind: crate::domain::EntryKind::File,
+                line_kind: BufferLineKind::Entry,
             });
             self.cursor.row = 0;
             self.cursor.col = 0;
@@ -218,6 +206,7 @@ impl Buffer {
                 id,
                 name: new_chars.into_iter().collect(),
                 kind,
+                line_kind: BufferLineKind::Entry,
             },
         );
 
@@ -278,6 +267,7 @@ impl Buffer {
                 id,
                 name: String::new(),
                 kind,
+                line_kind: BufferLineKind::Entry,
             },
         );
 
@@ -296,6 +286,7 @@ impl Buffer {
                 id,
                 name: String::new(),
                 kind,
+                line_kind: BufferLineKind::Entry,
             },
         );
 
@@ -312,7 +303,7 @@ impl Buffer {
     pub fn build_current_entries(&self) -> Vec<Entry> {
         self.lines
             .iter()
-            .filter(|line| !line.name.trim().is_empty())
+            .filter(|line| matches!(line.line_kind, BufferLineKind::Entry))
             .map(|line| {
                 let is_dir = line.name.ends_with('/');
                 let kind = if is_dir {
@@ -340,25 +331,26 @@ impl Buffer {
     }
 
     pub fn refresh(&mut self) -> std::io::Result<()> {
-        let mut new_entries = Vec::new();
+        let mut entries = Vec::new();
 
-        if let Ok(read_dir) = std::fs::read_dir(&self.parent) {
-            for entry in read_dir.flatten() {
-                let path = entry.path();
-                let kind = if path.is_dir() {
-                    EntryKind::Directory
-                } else {
-                    EntryKind::File
-                };
-                new_entries.push(Entry {
-                    id: EntryId::generate(),
-                    path,
-                    kind,
-                });
-            }
+        let read_dir = std::fs::read_dir(&self.parent)?;
+        for entry in read_dir.flatten() {
+            let path = entry.path();
+
+            let kind = if path.is_dir() {
+                EntryKind::Directory
+            } else {
+                EntryKind::File
+            };
+
+            entries.push(Entry {
+                id: EntryId::generate(),
+                path,
+                kind,
+            });
         }
 
-        new_entries.sort_by(|a, b| {
+        entries.sort_by(|a, b| {
             let a_is_dir = matches!(a.kind, EntryKind::Directory);
             let b_is_dir = matches!(b.kind, EntryKind::Directory);
 
@@ -368,6 +360,7 @@ impl Buffer {
                     .file_name()
                     .map(|n| n.to_string_lossy())
                     .unwrap_or_default();
+
                 let b_name = b
                     .path
                     .file_name()
@@ -378,28 +371,38 @@ impl Buffer {
             })
         });
 
-        let new_lines: Vec<BufferLine> = new_entries
-            .iter()
-            .map(|e| {
-                let mut name = e
-                    .path
-                    .file_name()
-                    .expect("entry path must have file name")
-                    .to_string_lossy()
-                    .to_string();
-                if matches!(e.kind, EntryKind::Directory) && !name.ends_with('/') {
-                    name.push('/');
-                }
+        let mut lines = Vec::new();
 
-                BufferLine {
-                    id: e.id,
-                    name,
-                    kind: e.kind,
-                }
-            })
-            .collect();
-        self.original = new_entries;
-        self.lines = new_lines;
+        if self.parent.parent().is_some() {
+            lines.push(BufferLine {
+                id: EntryId::generate(),
+                name: "../".to_string(),
+                kind: EntryKind::Directory,
+                line_kind: BufferLineKind::Parent,
+            });
+        }
+
+        for e in &entries {
+            let mut name = e
+                .path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+
+            if matches!(e.kind, EntryKind::Directory) && !name.ends_with('/') {
+                name.push('/');
+            }
+
+            lines.push(BufferLine {
+                id: e.id,
+                name,
+                kind: e.kind,
+                line_kind: BufferLineKind::Entry,
+            });
+        }
+
+        self.original = entries;
+        self.lines = lines;
 
         self.undo_stack.clear();
         self.redo_stack.clear();
