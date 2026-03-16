@@ -1,9 +1,8 @@
 mod validation;
 
+use std::path::{Path, PathBuf};
 pub use validation::ValidationError;
 pub use validation::validate;
-
-use std::path::PathBuf;
 
 use crate::domain::{Diff, Entry, EntryId, EntryKind, diff};
 
@@ -19,6 +18,28 @@ pub struct BufferLine {
     pub name: String,
     pub kind: EntryKind,
     line_kind: BufferLineKind,
+}
+
+impl BufferLine {
+    pub fn to_entry(&self, parent: &Path) -> Entry {
+        let is_dir = self.name.ends_with('/');
+
+        let name = if is_dir {
+            &self.name[..self.name.len() - 1]
+        } else {
+            &self.name
+        };
+
+        Entry {
+            id: self.id,
+            path: parent.join(name),
+            kind: if is_dir {
+                EntryKind::Directory
+            } else {
+                EntryKind::File
+            },
+        }
+    }
 }
 
 #[derive(Clone, Debug)]

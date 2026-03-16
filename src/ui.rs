@@ -1,5 +1,8 @@
+mod classify;
 pub mod command;
 mod event;
+mod file_kind;
+mod icon;
 pub mod mode;
 mod render;
 
