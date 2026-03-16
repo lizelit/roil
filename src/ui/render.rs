@@ -1,6 +1,7 @@
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout},
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
 };
 use unicode_width::UnicodeWidthStr;
@@ -25,17 +26,28 @@ pub fn render(frame: &mut Frame, app: &mut App, mode: &crate::ui::mode::CurrentM
 }
 
 fn buffer_widget(app: &App) -> Paragraph<'_> {
-    let text = app
+    use crate::ui::{classify::classify, icon::icon};
+
+    let lines: Vec<Line> = app
         .buffer
         .lines()
         .iter()
         .skip(app.scroll_offset)
         .take(app.view_height)
-        .map(|l| l.name.as_str())
-        .collect::<Vec<_>>()
-        .join("\n");
+        .map(|line| {
+            let entry = line.to_entry(&app.buffer.parent());
+            let kind = classify(&entry);
+            let icon = icon(kind);
 
-    Paragraph::new(text).block(Block::default().borders(Borders::ALL))
+            Line::from(vec![
+                Span::raw(icon),
+                Span::raw(" "),
+                Span::raw(line.name.clone()),
+            ])
+        })
+        .collect();
+
+    Paragraph::new(lines).block(Block::default().borders(Borders::ALL))
 }
 
 fn status_widget<'a>(app: &'a App, mode: &crate::ui::mode::CurrentMode) -> Paragraph<'a> {
@@ -64,6 +76,8 @@ fn status_widget<'a>(app: &'a App, mode: &crate::ui::mode::CurrentMode) -> Parag
 }
 
 fn draw_cursor(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
+    const ICON_OFFSET: usize = 2;
+
     let cursor = app.buffer.cursor();
 
     let relative_row = cursor.row.saturating_sub(app.scroll_offset);
@@ -81,7 +95,8 @@ fn draw_cursor(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
         .chars()
         .take(cursor.col)
         .map(|c| c.to_string().width())
-        .sum::<usize>();
+        .sum::<usize>()
+        + ICON_OFFSET;
 
     let cursor_y = area.y + 1 + relative_row as u16;
     let cursor_x = area.x + 1 + col as u16;
