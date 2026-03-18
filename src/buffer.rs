@@ -30,15 +30,17 @@ impl BufferLine {
             &self.name
         };
 
-        Entry {
-            id: self.id,
-            path: parent.join(name),
-            kind: if is_dir {
+        let entry = Entry::new(
+            self.id,
+            parent.join(name),
+            if is_dir {
                 EntryKind::Directory
             } else {
                 EntryKind::File
             },
-        }
+        );
+
+        entry
     }
 }
 
@@ -338,11 +340,9 @@ impl Buffer {
                     &line.name
                 };
 
-                Entry {
-                    id: line.id,
-                    path: self.parent.join(strip_name),
-                    kind,
-                }
+                let entry = Entry::new(line.id, self.parent().join(strip_name), kind);
+
+                entry
             })
             .collect()
     }
@@ -364,26 +364,22 @@ impl Buffer {
                 EntryKind::File
             };
 
-            entries.push(Entry {
-                id: EntryId::generate(),
-                path,
-                kind,
-            });
+            entries.push(Entry::new(EntryId::generate(), path, kind));
         }
 
         entries.sort_by(|a, b| {
-            let a_is_dir = matches!(a.kind, EntryKind::Directory);
-            let b_is_dir = matches!(b.kind, EntryKind::Directory);
+            let a_is_dir = matches!(a.kind(), EntryKind::Directory);
+            let b_is_dir = matches!(b.kind(), EntryKind::Directory);
 
             b_is_dir.cmp(&a_is_dir).then_with(|| {
                 let a_name = a
-                    .path
+                    .path()
                     .file_name()
                     .map(|n| n.to_string_lossy())
                     .unwrap_or_default();
 
                 let b_name = b
-                    .path
+                    .path()
                     .file_name()
                     .map(|n| n.to_string_lossy())
                     .unwrap_or_default();
@@ -405,19 +401,19 @@ impl Buffer {
 
         for e in &entries {
             let mut name = e
-                .path
+                .path()
                 .file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_default();
 
-            if matches!(e.kind, EntryKind::Directory) && !name.ends_with('/') {
+            if matches!(e.kind(), EntryKind::Directory) && !name.ends_with('/') {
                 name.push('/');
             }
 
             lines.push(BufferLine {
-                id: e.id,
+                id: *e.id(),
                 name,
-                kind: e.kind,
+                kind: *e.kind(),
                 line_kind: BufferLineKind::Entry,
             });
         }
