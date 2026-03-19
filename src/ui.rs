@@ -44,6 +44,18 @@ impl Ui {
                 break;
             }
 
+            let size = self.terminal.size()?;
+
+            use ratatui::layout::{Constraint, Direction, Layout};
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(0), Constraint::Length(1)])
+                .split(size);
+
+            let main_area = chunks[0];
+
+            app.update_layout(main_area);
+
             self.terminal.draw(|frame| {
                 render(frame, app, &self.mode);
             })?;
@@ -64,7 +76,7 @@ impl Ui {
         match effect {
             AppEffect::OpenEditor(path) => {
                 self.open_editor(path)?;
-                app.buffer.refresh()?;
+                app.refresh_buffer()?;
             }
         }
         Ok(())
@@ -103,7 +115,7 @@ impl Ui {
 
     fn change_mode(&mut self, app: &mut App, target: TargetMode) {
         if matches!(target, TargetMode::Normal) {
-            app.command_buffer.clear();
+            app.clear_command();
         }
 
         match target {

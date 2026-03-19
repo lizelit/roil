@@ -3,9 +3,9 @@ use crate::domain::{Entry, EntryKind};
 use std::path::Path;
 
 pub fn classify(entry: &Entry) -> FileKind {
-    match entry.kind {
+    match entry.kind() {
         EntryKind::Directory => FileKind::Directory,
-        EntryKind::File => classify_file(&entry.path),
+        EntryKind::File => classify_file(&entry.path()),
     }
 }
 

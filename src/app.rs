@@ -5,14 +5,14 @@ use crate::fs::{FsError, RealFs, VirtualFs, apply_diff};
 use crate::ui::{Command, Direction};
 
 pub struct App {
-    pub scroll_offset: usize,
-    pub view_height: usize,
-    pub buffer: Buffer,
+    scroll_offset: usize,
+    view_height: usize,
+    buffer: Buffer,
     virtual_fs: VirtualFs,
     real_fs: RealFs,
     state: AppState,
     error_message: Option<String>,
-    pub command_buffer: String,
+    command_buffer: String,
 }
 
 pub enum AppEffect {
@@ -46,13 +46,55 @@ impl App {
             command_buffer: String::new(),
         }
     }
+    // setter
+    pub fn scroll_offset(&self) -> usize {
+        self.scroll_offset
+    }
+
+    pub fn view_height(&self) -> usize {
+        self.view_height
+    }
+
+    pub fn buffer(&self) -> &Buffer {
+        &self.buffer
+    }
+
+    pub fn virtual_fs(&self) -> &VirtualFs {
+        &self.virtual_fs
+    }
+
+    pub fn real_fs(&self) -> &RealFs {
+        &self.real_fs
+    }
 
     pub fn state(&self) -> AppState {
         self.state
     }
 
+    pub fn error_message(&self) -> Option<&str> {
+        self.error_message.as_deref()
+    }
+
+    pub fn command_buffer(&self) -> &str {
+        &self.command_buffer
+    }
+
+    // setter
+    pub fn update_layout(&mut self, main_area: ratatui::layout::Rect) {
+        self.view_height = (main_area.height as usize).saturating_sub(2);
+        self.update_scroll();
+    }
+
+    pub fn refresh_buffer(&mut self) -> std::io::Result<()> {
+        self.buffer.refresh()
+    }
+
+    pub fn clear_command(&mut self) {
+        self.command_buffer.clear();
+    }
+
     pub fn update_scroll(&mut self) {
-        let cursor_row = self.buffer.cursor().row;
+        let cursor_row = self.buffer.cursor().row();
 
         if cursor_row < self.scroll_offset {
             self.scroll_offset = cursor_row;
@@ -61,10 +103,6 @@ impl App {
         if self.view_height > 0 && cursor_row >= self.scroll_offset + self.view_height {
             self.scroll_offset = cursor_row - self.view_height + 1;
         }
-    }
-
-    pub fn error_message(&self) -> Option<&str> {
-        self.error_message.as_deref()
     }
 
     pub fn request_exit(&mut self, force: bool) {
@@ -162,17 +200,7 @@ impl App {
 
     pub fn execute(&mut self, cmd: Command) -> Option<AppEffect> {
         match cmd {
-            Command::Move(dir, count) => {
-                for _ in 0..count {
-                    match dir {
-                        Direction::Left => self.buffer.move_left(),
-                        Direction::Down => self.buffer.move_down(),
-                        Direction::Up => self.buffer.move_up(),
-                        Direction::Right => self.buffer.move_right(),
-                    }
-                }
-                None
-            }
+            Command::Move(dir, count) => self.handle_move(dir, count),
 
             Command::InsertChar(c) => {
                 self.buffer.insert_char(c);
@@ -212,25 +240,38 @@ impl App {
                 None
             }
 
-            Command::Enter => {
-                let selection = self.buffer.current_line().cloned();
-                if let Some(selection) = selection {
-                    match selection.kind {
-                        EntryKind::File => {
-                            let path = self.buffer.parent().join(selection.name);
-                            return Some(AppEffect::OpenEditor(path));
-                        }
-                        EntryKind::Directory => {
-                            self.buffer.cd(&selection);
-                        }
-                    }
-                }
-                None
-            }
+            Command::Enter => self.handle_enter(),
 
             Command::Execute => unreachable!(),
             Command::Quit => {
                 self.request_exit(false);
+                None
+            }
+        }
+    }
+
+    // helper of execute()
+    fn handle_move(&mut self, dir: Direction, count: usize) -> Option<AppEffect> {
+        for _ in 0..count {
+            match dir {
+                Direction::Left => self.buffer.move_left(),
+                Direction::Down => self.buffer.move_down(),
+                Direction::Up => self.buffer.move_up(),
+                Direction::Right => self.buffer.move_right(),
+            }
+        }
+        None
+    }
+
+    fn handle_enter(&mut self) -> Option<AppEffect> {
+        let selection = self.buffer.current_line().cloned()?;
+        match selection.kind() {
+            EntryKind::File => {
+                let path = self.buffer.parent().join(selection.name());
+                Some(AppEffect::OpenEditor(path))
+            }
+            EntryKind::Directory => {
+                self.buffer.cd(&selection);
                 None
             }
         }

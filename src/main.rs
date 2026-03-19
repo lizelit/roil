@@ -38,7 +38,7 @@ fn main() -> io::Result<()> {
     let initial_vfs = buffer
         .build_current_entries()
         .into_iter()
-        .map(|e| (e.path, e.kind))
+        .map(|e| (e.path().to_path_buf(), *e.kind()))
         .collect();
 
     let vfs = VirtualFs::new(initial_vfs);
