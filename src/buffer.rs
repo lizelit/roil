@@ -8,19 +8,40 @@ use crate::domain::{Diff, Entry, EntryId, EntryKind, diff};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Cursor {
-    pub row: usize,
-    pub col: usize,
+    row: usize,
+    col: usize,
+}
+
+impl Cursor {
+    pub fn row(&self) -> usize {
+        self.row
+    }
+    pub fn col(&self) -> usize {
+        self.col
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct BufferLine {
-    pub id: EntryId,
-    pub name: String,
-    pub kind: EntryKind,
+    id: EntryId,
+    name: String,
+    kind: EntryKind,
     line_kind: BufferLineKind,
 }
 
 impl BufferLine {
+    pub fn id(&self) -> &EntryId {
+        &self.id
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
+    }
+
+    pub fn kind(&self) -> &EntryKind {
+        &self.kind
+    }
+
     pub fn to_entry(&self, parent: &Path) -> Entry {
         let is_dir = self.name.ends_with('/');
 

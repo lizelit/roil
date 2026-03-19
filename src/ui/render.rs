@@ -8,16 +8,13 @@ use unicode_width::UnicodeWidthStr;
 
 use crate::app::App;
 
-pub fn render(frame: &mut Frame, app: &mut App, mode: &crate::ui::mode::CurrentMode) {
+pub fn render(frame: &mut Frame, app: &App, mode: &crate::ui::mode::CurrentMode) {
     let area = frame.size();
 
     let [main, status] = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(1)])
         .areas(area);
-
-    app.view_height = main.height.saturating_sub(2) as usize;
-    app.update_scroll();
 
     frame.render_widget(buffer_widget(app), main);
     frame.render_widget(status_widget(app, mode), status);
@@ -29,20 +26,20 @@ fn buffer_widget(app: &App) -> Paragraph<'_> {
     use crate::ui::{classify::classify, icon::icon};
 
     let lines: Vec<Line> = app
-        .buffer
+        .buffer()
         .lines()
         .iter()
-        .skip(app.scroll_offset)
-        .take(app.view_height)
+        .skip(app.scroll_offset())
+        .take(app.view_height())
         .map(|line| {
-            let entry = line.to_entry(&app.buffer.parent());
+            let entry = line.to_entry(&app.buffer().parent());
             let kind = classify(&entry);
             let icon = icon(kind);
 
             Line::from(vec![
                 Span::raw(icon),
                 Span::raw(" "),
-                Span::raw(line.name.clone()),
+                Span::raw(line.name()),
             ])
         })
         .collect();
@@ -54,15 +51,15 @@ fn status_widget<'a>(app: &'a App, mode: &crate::ui::mode::CurrentMode) -> Parag
     let mut text = String::new();
 
     if *mode == crate::ui::mode::CurrentMode::Command {
-        text.push_str(&format!(":{} ", app.command_buffer));
+        text.push_str(&format!(":{} ", app.command_buffer()));
     } else {
         let mode_str = match mode {
             crate::ui::mode::CurrentMode::Normal => "-- NORMAL --",
             crate::ui::mode::CurrentMode::Insert => "-- INSERT --",
             _ => unreachable!(),
         };
-        let c = app.buffer.cursor();
-        text.push_str(&format!(" {}:{} ", c.row + 1, c.col + 1));
+        let c = app.buffer().cursor();
+        text.push_str(&format!(" {}:{} ", c.row() + 1, c.col() + 1));
         text.push_str(mode_str);
     }
 
@@ -78,22 +75,22 @@ fn status_widget<'a>(app: &'a App, mode: &crate::ui::mode::CurrentMode) -> Parag
 fn draw_cursor(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
     const ICON_OFFSET: usize = 2;
 
-    let cursor = app.buffer.cursor();
+    let cursor = app.buffer().cursor();
 
-    let relative_row = cursor.row.saturating_sub(app.scroll_offset);
+    let relative_row = cursor.row().saturating_sub(app.scroll_offset());
 
-    if relative_row >= app.view_height {
+    if relative_row >= app.view_height() {
         return;
     }
 
-    let Some(line) = app.buffer.line(cursor.row) else {
+    let Some(line) = app.buffer().line(cursor.row()) else {
         return;
     };
 
     let col = line
-        .name
+        .name()
         .chars()
-        .take(cursor.col)
+        .take(cursor.col())
         .map(|c| c.to_string().width())
         .sum::<usize>()
         + ICON_OFFSET;
