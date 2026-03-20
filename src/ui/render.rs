@@ -1,10 +1,10 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
 };
-use unicode_width::UnicodeWidthStr;
+use unicode_width::UnicodeWidthChar;
 
 use crate::app::App;
 
@@ -17,7 +17,8 @@ pub fn render(frame: &mut Frame, app: &App, mode: &crate::ui::mode::CurrentMode)
         .areas(area);
 
     frame.render_widget(buffer_widget(app), main);
-    frame.render_widget(status_widget(app, mode), status);
+
+    status_widget(frame, status, app, mode);
 
     draw_cursor(frame, main, app);
 }
@@ -47,36 +48,34 @@ fn buffer_widget(app: &App) -> Paragraph<'_> {
     Paragraph::new(lines).block(Block::default().borders(Borders::ALL))
 }
 
-fn status_widget<'a>(app: &'a App, mode: &crate::ui::mode::CurrentMode) -> Paragraph<'a> {
-    let mut text = String::new();
+fn status_widget<'a>(frame: &mut Frame, area: Rect, app: &'a App, mode: &super::mode::CurrentMode) {
+    use super::mode::CurrentMode;
+    let [left, right] = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Fill(1), Constraint::Length(20)])
+        .areas(area);
 
-    if *mode == crate::ui::mode::CurrentMode::Command {
-        text.push_str(&format!(":{} ", app.command_buffer()));
-    } else {
-        let mode_str = match mode {
-            crate::ui::mode::CurrentMode::Normal => "-- NORMAL --",
-            crate::ui::mode::CurrentMode::Insert => "-- INSERT --",
-            _ => unreachable!(),
-        };
-        let c = app.buffer().cursor();
-        text.push_str(&format!(" {}:{} ", c.row() + 1, c.col() + 1));
-        text.push_str(mode_str);
-    }
+    let left_content = match mode {
+        CurrentMode::Command => format!(":{} ", app.command_buffer()),
+        _ => format!(" -- {:?} -- ", mode).to_ascii_uppercase(),
+    };
+    frame.render_widget(Paragraph::new(left_content), left);
 
-    if app.state() == crate::app::AppState::Error
-        && let Some(msg) = app.error_message()
-    {
-        text.push_str(&format!("| ERROR: {} ", msg));
-    }
-
-    Paragraph::new(text)
+    let cursor = app.buffer().cursor();
+    let right_content = format!("{}:{}", cursor.row() + 1, cursor.col() + 1);
+    frame.render_widget(
+        Paragraph::new(right_content).alignment(Alignment::Right),
+        right,
+    );
 }
 
 fn draw_cursor(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
-    const ICON_OFFSET: usize = 2;
+    let inner_area = area.inner(&ratatui::layout::Margin {
+        horizontal: 1,
+        vertical: 1,
+    });
 
     let cursor = app.buffer().cursor();
-
     let relative_row = cursor.row().saturating_sub(app.scroll_offset());
 
     if relative_row >= app.view_height() {
@@ -87,16 +86,17 @@ fn draw_cursor(frame: &mut Frame, area: ratatui::layout::Rect, app: &App) {
         return;
     };
 
-    let col = line
+    const ICON_WIDTH: usize = 2;
+    let text_column: usize = line
         .name()
         .chars()
         .take(cursor.col())
-        .map(|c| c.to_string().width())
-        .sum::<usize>()
-        + ICON_OFFSET;
+        .filter_map(|c| c.width())
+        .sum();
+    let total_col_offset = (text_column + ICON_WIDTH) as u16;
 
-    let cursor_y = area.y + 1 + relative_row as u16;
-    let cursor_x = area.x + 1 + col as u16;
-
-    frame.set_cursor(cursor_x, cursor_y);
+    frame.set_cursor(
+        inner_area.x + total_col_offset,
+        inner_area.y + relative_row as u16,
+    );
 }
